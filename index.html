@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<link rel="manifest" href="manifest.json">
+<title>FingerChooser</title>
+<style>
+	body {
+		margin: 0;
+		width: 100vw;
+		height: 100vh;
+		overflow: hidden;
+		background: #1A202C;
+	}
+
+	svg {
+		width: 150px;
+		position: absolute;
+	}
+
+	.outerCircle {
+		stroke-dashoffset: calc((100 - var(--progress)) * 1px * 107 / 100);
+	}
+</style>
+</head>
+<body>
+<svg viewBox="0 0 40 40" style="display:none;">
+  <circle cx="20" cy="20" r="10" fill="currentColor"/>
+  <circle cx="20" cy="20" r="17" class="outerCircle" stroke-width="5" stroke="currentColor" fill="transparent" stroke-dashoffset="107" stroke-dasharray="107" />
+</svg>
+<script>
+	const $item = document.querySelector("svg");
+	
+	const App = {
+		_Progress : 0,
+		_Touches: new Map(),
+		_Colors : ["#718096","#E53E3E","#DD6B20","#D69E2E","#38A169","#319795","#3182CE","#5A67D8","#805AD5","#D53F8C"],
+		_IsFinished: false,
+
+		_addTouch(touch){
+			let item = $item.cloneNode(true);
+			let color = App._Colors.shift();
+
+			item.style.display = "block";
+			item.style.color = color;
+
+			App._Touches.set(touch.identifier, {
+				x: touch.clientX,
+				y: touch.clientY,
+				el: item,
+				color: color,
+				identifier: touch.identifier
+			});
+			document.body.appendChild( item );
+		},
+
+		_removeTouch(touch){
+			let item = App._Touches.get(touch.identifier);
+			document.body.removeChild( item.el );
+			App._Colors.push( item.color );
+			App._Touches.delete( touch.identifier );
+		},
+
+		init(){
+			this.update = this.update.bind(this);
+
+			document.body.addEventListener("touchstart", function(e){
+				if( App._IsFinished ){
+					return false;
+				}
+
+				for(let touch of e.changedTouches){
+					if( !App._Touches.has(touch.identifier) ){
+						App._addTouch(touch);
+					}
+				}
+				App._Progress = 0;
+			});
+
+			document.body.addEventListener("touchmove", function(e){
+				for(let touch of e.changedTouches){
+					if( App._Touches.has(touch.identifier) ){
+						let item = App._Touches.get( touch.identifier );
+						item.x = touch.clientX;
+						item.y = touch.clientY;
+					}
+				}
+			});
+
+			document.body.addEventListener("touchend", function(e){
+				if( App._IsFinished && e.touches.length == 0 ){
+					setTimeout(function(){ App.reset(); }, 1500);
+					return false;
+				}
+
+				for(let touch of e.changedTouches){
+					if( App._Touches.has(touch.identifier) ){
+						App._removeTouch(touch);
+					}
+				}
+
+				if( !App._IsFinished ){
+					App._Progress = 0;
+				}
+			});
+		},
+
+		reset(){
+			for(let touch of this._Touches.values()){
+				this._removeTouch(touch);
+			}
+			this._Progress = 0;
+			this._IsFinished = false;
+		},
+
+		update(){
+			if( this._Touches.size >= 2 ){
+				this._Progress++;
+				this._Progress = Math.min(this._Progress,100);
+			}
+
+			if( this._Progress == 100 ){
+				this._IsFinished = true;
+				const winner = Math.floor(Math.random() * this._Touches.size);
+				let i = 0;
+				for(let [k,item]  of this._Touches){
+					if( i !== winner ){
+						this._removeTouch( item );
+					}
+					i++;
+				}
+				window.navigator.vibrate(200);
+			}
+
+			document.body.style.setProperty("--progress", this._Progress);	
+
+			for(let t of this._Touches.values()){
+				t.el.style.transform = `translate(${t.x-75}px,${t.y-75}px)`;
+			}
+			requestAnimationFrame(App.update);
+		}
+	};
+
+	App.init();
+	App.update();
+
+	if ('serviceWorker' in navigator) {
+		navigator.serviceWorker.register('./sw.js', {scope: '/FingerChooser/'})
+			.then((reg) => {
+				// registration worked
+				console.log('Registration succeeded. Scope is ' + reg.scope);
+			}).catch((error) => {
+				// registration failed
+				console.log('Registration failed with ' + error);
+			});
+	}
+</script>
+</body>
+</html>

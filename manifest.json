@@ -1,0 +1,7 @@
+{
+  "background_color": "purple",
+	"description" : "An app to select a single person from a group",
+  "display": "fullscreen",
+	"name": "FingerChooser",
+  "start_url": "/FingerChooser/"
+}
