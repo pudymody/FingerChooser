@@ -8,10 +8,24 @@
 <style>
 	body {
 		margin: 0;
+	}
+
+	.wrapper {
 		width: 100vw;
 		height: 100vh;
 		overflow: hidden;
 		background: #1A202C;
+	}
+
+	.wrapper:empty::before {
+		content: "Put your fingers on the screen";
+		color: white;
+		font-family: monospace;
+		font-size: 2rem;
+		display: flex;
+		align-items: center;
+		text-align: center;
+		height: 100%;
 	}
 
 	svg {
@@ -19,19 +33,40 @@
 		position: absolute;
 	}
 
+	svg > circle {
+		fill: currentColor;
+	}
+
 	.outerCircle {
 		stroke-dashoffset: calc((100 - var(--progress)) * 1px * 107 / 100);
+		stroke-width: 5;
+		stroke: currentColor;
+		fill: transparent;
+		stroke-dashoffset: 107;
+		stroke-dasharray: 107;
 	}
 </style>
 </head>
 <body>
-<svg viewBox="0 0 40 40" style="display:none;">
-  <circle cx="20" cy="20" r="10" fill="currentColor"/>
-  <circle cx="20" cy="20" r="17" class="outerCircle" stroke-width="5" stroke="currentColor" fill="transparent" stroke-dashoffset="107" stroke-dasharray="107" />
-</svg>
+	<div class="wrapper"></div>
 <script>
-	const $item = document.querySelector("svg");
+	const $item = document.createElementNS("http://www.w3.org/2000/svg","svg");
+		$item.setAttribute("viewBox", "0 0 40 40");
+	const $circle1 = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+		$circle1.setAttributeNS("", "cx", 20);
+		$circle1.setAttributeNS("", "cy", 20);
+		$circle1.setAttributeNS("", "r", 10);
+	const $circle2 = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+		$circle2.classList.add("outerCircle");
+		$circle2.setAttributeNS("", "cx", 20);
+		$circle2.setAttributeNS("", "cy", 20);
+		$circle2.setAttributeNS("", "r", 17);
 	
+	$item.appendChild($circle1);
+	$item.appendChild($circle2);
+	
+	const $wrapper = document.querySelector(".wrapper");
+
 	const App = {
 		_Progress : 0,
 		_Touches: new Map(),
@@ -52,12 +87,12 @@
 				color: color,
 				identifier: touch.identifier
 			});
-			document.body.appendChild( item );
+			$wrapper.appendChild( item );
 		},
 
 		_removeTouch(touch){
 			let item = App._Touches.get(touch.identifier);
-			document.body.removeChild( item.el );
+			$wrapper.removeChild( item.el );
 			App._Colors.push( item.color );
 			App._Touches.delete( touch.identifier );
 		},
